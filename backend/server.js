@@ -3,9 +3,11 @@ const multer = require("multer");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
+const axios = require("axios");
 const { spawn } = require("child_process");
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
@@ -19,7 +21,7 @@ const userSchema = new mongoose.Schema({
   userid: String,
   pwd: String,
   email: String,
-  phone: String, 
+  phone: String,
   otp: String,
   otpExpiry: Number,
 });
@@ -28,213 +30,301 @@ const User = mongoose.model("User", userSchema);
 
 const storage = multer.diskStorage({
   destination: "uploads/",
-  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
 });
+
 const upload = multer({ storage });
-
-app.post("/predict", upload.single("image"), (req, res) => {
-  const imagePath = req.file.path;
-
-  const python = spawn("python", ["model/predict.py", imagePath]);
-
-  python.stdout.on("data", (data) => {
-    try {
-      res.json(JSON.parse(data.toString()));
-    } catch (err) {
-      console.log("❌ JSON Error:", err);
-      res.status(500).json({ error: "Prediction Failed" });
-    }
-  });
-
-  python.stderr.on("data", (data) => {
-    console.log("❌ Python Error:", data.toString());
-  });
-});
 
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+/* ===========================
+   SIGNUP
+=========================== */
+
 app.post("/signup", async (req, res) => {
-  const { name, userid, pwd, email, phone } = req.body;
+  try {
+    const { name, userid, pwd, email, phone } = req.body;
 
-  const exists = await User.findOne({ userid });
-  if (exists) return res.json({ msg: "User already exists" });
+    const exists = await User.findOne({ userid });
 
-  const hash = await bcrypt.hash(pwd, 10);
-  await User.create({
-    name,
-    userid,
-    pwd: hash,
-    email,
-    phone: phone.toString(),
-  });
+    if (exists) {
+      return res.json({ msg: "User already exists" });
+    }
 
-  res.json({ msg: "Signup Successful ✅" });
+    const hash = await bcrypt.hash(pwd, 10);
+
+    await User.create({
+      name,
+      userid,
+      pwd: hash,
+      email,
+      phone: phone.toString(),
+    });
+
+    res.json({ msg: "Signup Successful ✅" });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ msg: "Signup Failed" });
+  }
 });
 
+/* ===========================
+   LOGIN
+=========================== */
 
 app.post("/login", async (req, res) => {
-  const { userid, password } = req.body;
+  try {
+    const { userid, password } = req.body;
 
-  const user = await User.findOne({ userid });
-  if (!user) return res.json({ msg: "User not found" });
+    const user = await User.findOne({ userid });
 
-  const match = await bcrypt.compare(password, user.pwd);
-  if (!match) return res.json({ msg: "Wrong Password" });
+    if (!user) {
+      return res.json({ msg: "User not found" });
+    }
 
-  res.json({
-    msg: "Login Successful ✅",
-    user: {
-      name: user.name,
-      userid: user.userid,
-      email: user.email,
-      phone: user.phone,
-    },
-  });
+    const match = await bcrypt.compare(password, user.pwd);
+
+    if (!match) {
+      return res.json({ msg: "Wrong Password" });
+    }
+
+    res.json({
+      msg: "Login Successful ✅",
+      user: {
+        name: user.name,
+        userid: user.userid,
+        email: user.email,
+        phone: user.phone,
+      },
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ msg: "Login Failed" });
+  }
 });
 
-const axios = require("axios");
+/* ===========================
+   SEND OTP
+=========================== */
 
 app.post("/send-otp", async (req, res) => {
-  const { phone } = req.body;
-
-  console.log("📌 Searching phone:", phone);
-
-  const user = await User.findOne({ phone: phone.toString() });
-
-  console.log("📌 Found user:", user);
-
-  if (!user) return res.json({ message: "Phone not registered" });
-
-  const otp = generateOTP();
-  user.otp = otp;
-  user.otpExpiry = Date.now() + 5 * 60 * 1000;
-  await user.save();
-
-  console.log("✅ OTP:", otp);
-
   try {
+    const { phone } = req.body;
+
+    const user = await User.findOne({
+      phone: phone.toString(),
+    });
+
+    if (!user) {
+      return res.json({
+        message: "Phone not registered",
+      });
+    }
+
+    const otp = generateOTP();
+
+    user.otp = otp;
+    user.otpExpiry = Date.now() + 5 * 60 * 1000;
+
+    await user.save();
+
+    console.log("✅ OTP:", otp);
+
     const smsRes = await axios.get(
       `https://2factor.in/API/V1/f4258757-bd71-11f0-bdde-0200cd936042/SMS/${phone}/${otp}`
     );
 
     console.log("✅ SMS Response:", smsRes.data);
 
-    res.json({ message: "OTP sent successfully ✅" });
+    res.json({
+      message: "OTP sent successfully ✅",
+    });
   } catch (error) {
     console.log("❌ SMS Error:", error);
-    res.json({ message: "SMS sending failed ❌" });
+
+    res.json({
+      message: "SMS sending failed ❌",
+    });
   }
 });
+
+/* ===========================
+   VERIFY OTP
+=========================== */
 
 app.post("/verify-otp", async (req, res) => {
-  const { phone, otp } = req.body;
+  try {
+    const { phone, otp } = req.body;
 
-  const user = await User.findOne({ phone: phone.toString() });
-  if (!user) return res.json({ message: "User not found" });
+    const user = await User.findOne({
+      phone: phone.toString(),
+    });
 
-  if (user.otp !== otp) return res.json({ message: "Invalid OTP" });
+    if (!user) {
+      return res.json({
+        message: "User not found",
+      });
+    }
 
-  if (Date.now() > user.otpExpiry)
-    return res.json({ message: "OTP expired" });
+    if (user.otp !== otp) {
+      return res.json({
+        message: "Invalid OTP",
+      });
+    }
 
-  res.json({ message: "OTP Verified ✅" });
-});
-app.post("/update-profile", async (req, res) => {
-  const { userid, name, email, phone, password } = req.body;
+    if (Date.now() > user.otpExpiry) {
+      return res.json({
+        message: "OTP expired",
+      });
+    }
 
-  const user = await User.findOne({ userid });
-  if (!user) return res.json({ success: false, message: "User not found" });
+    res.json({
+      message: "OTP Verified ✅",
+    });
+  } catch (err) {
+    console.log(err);
 
-  user.name = name;
-  user.email = email;
-  user.phone = phone;
-  if (password.trim() !== "") {
-    user.pwd = await bcrypt.hash(password, 10);
+    res.status(500).json({
+      message: "OTP verification failed",
+    });
   }
-
-  await user.save();
-
-  res.json({ success: true, message: "Profile updated ✅" });
 });
+
+/* ===========================
+   UPDATE PROFILE
+=========================== */
+
+app.post("/update-profile", async (req, res) => {
+  try {
+    const { userid, name, email, phone, password } = req.body;
+
+    const user = await User.findOne({ userid });
+
+    if (!user) {
+      return res.json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    user.name = name;
+    user.email = email;
+    user.phone = phone;
+
+    if (password.trim() !== "") {
+      user.pwd = await bcrypt.hash(password, 10);
+    }
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Profile updated ✅",
+    });
+  } catch (err) {
+    console.log(err);
+
+    res.status(500).json({
+      success: false,
+      message: "Update failed",
+    });
+  }
+});
+
+/* ===========================
+   RESET PASSWORD
+=========================== */
 
 app.post("/reset-password", async (req, res) => {
-  const { phone, password } = req.body;
+  try {
+    const { phone, password } = req.body;
 
-  const user = await User.findOne({ phone: phone.toString() });
-  if (!user) return res.json({ message: "User not found" });
+    const user = await User.findOne({
+      phone: phone.toString(),
+    });
 
-  const hash = await bcrypt.hash(password, 10);
-
-  user.pwd = hash;
-  user.otp = "";
-  user.otpExpiry = null;
-
-  await user.save();
-
-  res.json({ message: "Password reset successful ✅" });
-});
-const path = require("path");
-
-app.post("/predict", upload.single("image"), (req, res) => {
-  const imagePath = req.file.path;
-
-  const python = spawn("python", ["backend/model/predict.py", imagePath]);
-
-  let fullData = "";
-
-  python.stdout.on("data", (data) => {
-    fullData += data.toString();
-  });
-
-  python.stdout.on("end", () => {
-    try {
-      fullData = fullData.trim(); 
-
-      console.log("✅ PYTHON RESPONSE:", fullData);
-
-      res.json(JSON.parse(fullData));
-    } catch (err) {
-      console.log("❌ JSON Error:", err);
-      console.log("❌ Received from Python:", fullData);
-      res.status(500).json({ error: "Invalid JSON from Python" });
+    if (!user) {
+      return res.json({
+        message: "User not found",
+      });
     }
-  });
 
-  python.stderr.on("data", (data) => {
-    console.log("❌ Python Error:", data.toString());
-  });
+    const hash = await bcrypt.hash(password, 10);
+
+    user.pwd = hash;
+    user.otp = "";
+    user.otpExpiry = null;
+
+    await user.save();
+
+    res.json({
+      message: "Password reset successful ✅",
+    });
+  } catch (err) {
+    console.log(err);
+
+    res.status(500).json({
+      message: "Password reset failed",
+    });
+  }
 });
+
+/* ===========================
+   RETINA ANALYSIS
+=========================== */
 
 app.post("/analyze", upload.single("image"), (req, res) => {
-  const imagePath = req.file.path;
+  try {
+    const imagePath = req.file.path;
 
-  const python = spawn("python", ["model/predict.py", imagePath]);
+    const python = spawn(
+      "C:\\Users\\ANSAR\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+      ["model/predict.py", imagePath]
+    );
 
-  let fullData = "";
+    let fullData = "";
 
-  python.stdout.on("data", (data) => {
-    fullData += data.toString();   
-  });
+    python.stdout.on("data", (data) => {
+      fullData += data.toString();
+    });
 
-  python.stdout.on("end", () => {
-    try {
-      fullData = fullData.trim();
-      console.log("image generated")
-      res.json(JSON.parse(fullData)); 
-    } catch (err) {
-      console.log("❌ JSON Error:", err);
-      console.log("❌ Received:", fullData);
-      res.status(500).json({ error: "Invalid JSON from Python" });
-    }
-  });
+    python.stdout.on("end", () => {
+      try {
+        fullData = fullData.trim();
 
-  python.stderr.on("data", (data) => {
-    console.log("❌ Python Error:", data.toString());
-  });
+        console.log("✅ PYTHON RESPONSE:", fullData);
+
+        res.json(JSON.parse(fullData));
+      } catch (err) {
+        console.log("❌ JSON Error:", err);
+        console.log("❌ Received:", fullData);
+
+        res.status(500).json({
+          error: "Invalid JSON from Python",
+        });
+      }
+    });
+
+    python.stderr.on("data", (data) => {
+      console.log("❌ Python Error:", data.toString());
+    });
+  } catch (err) {
+    console.log(err);
+
+    res.status(500).json({
+      error: "Prediction failed",
+    });
+  }
 });
 
-app.listen(5000, () =>
-  console.log("✅ Server running on port 5000")
-);
+/* ===========================
+   START SERVER
+=========================== */
+
+app.listen(5000, () => {
+  console.log("✅ Server running on port 5000");
+});

@@ -4,8 +4,10 @@ import ProfileModal from "./ProfileModal";
 
 
 // Local reusable button + card
-const Button = ({ children, className }) => (
-  <button className={className}>{children}</button>
+const Button = ({ children, className, onClick }) => (
+  <button className={className} onClick={onClick}>
+    {children}
+  </button>
 );
 
 const Card = ({ children, className }) => <div className={className}>{children}</div>;
@@ -108,11 +110,12 @@ export default function HomePage() {
                 transition={{ repeat: Infinity, duration: 10, ease: "linear" }}
               >
                 {images.concat(images).map((img, idx) => (
-                  <img
-                    key={idx}
-                    src={img}
-                    className="rounded-2xl w-96 h-80 object-cover border border-purple-700"
-                  />
+                 <img
+  key={idx}
+  src={img}
+  alt="retina sample"
+  className="rounded-2xl w-96 h-80 object-cover border border-purple-700"
+/>
                 ))}
               </motion.div>
             </CardContent>

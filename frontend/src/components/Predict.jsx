@@ -73,7 +73,7 @@ export default function Predict() {
             <p className="text-xl mt-4"><b>Stage:</b> {result.stage}</p>
             <p className="text-xl mt-2"><b>Description:</b> {result.description}</p>
             <p className="text-xl mt-2">
-              <b>Confidence:</b> {result.confidence.toFixed(2)}%
+              <b>Confidence:</b> {result.confidence ? result.confidence.toFixed(2) : "0"}%
             </p>
           </div>
         </div>
