@@ -6,7 +6,7 @@ import io
 from PIL import Image
 import numpy as np
 from retina_classifier import RetinaClassifier
-from autoencoder import Autoencoder   # reconstruction
+from autoencoder import Autoencoder   
 import torch.nn.functional as F
 import os
 
@@ -32,7 +32,7 @@ DESCRIPTIONS = {
     "Proliferative DR": "Advanced stage. New abnormal blood vessels. High risk of vision loss."
 }
 
-# ✅ Load Image
+
 img = Image.open(IMAGE_PATH).convert("RGB")
 img = img.resize((224, 224))
 
@@ -40,7 +40,7 @@ img_np = np.array(img).astype("float32") / 255.0
 img_np = np.transpose(img_np, (2, 0, 1))
 img_tensor = torch.tensor(img_np).unsqueeze(0).to(device)
 
-# ✅ Load Autoencoder
+
 auto = Autoencoder().to(device)
 auto.load_state_dict(torch.load(AUTOENCODER_PATH, map_location=device))
 auto.eval()
@@ -52,7 +52,6 @@ with torch.no_grad():
 reconstructed_np = np.transpose(reconstructed_np, (1, 2, 0))
 reconstructed_img = Image.fromarray((reconstructed_np * 255).astype("uint8"))
 
-# ✅ Convert PIL → Base64
 def to_base64(pil_img):
     buff = io.BytesIO()
     pil_img.save(buff, format="PNG")
@@ -61,7 +60,6 @@ def to_base64(pil_img):
 original_b64 = to_base64(img)
 reconstructed_b64 = to_base64(reconstructed_img)
 
-# ✅ CLASSIFICATION
 model = RetinaClassifier().to(device)
 model.load_state_dict(torch.load(CLASSIFIER_PATH, map_location=device))
 model.eval()

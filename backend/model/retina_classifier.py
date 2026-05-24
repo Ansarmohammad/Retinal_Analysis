@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 
-# ✅ Encoder matches training structure
 class Encoder(nn.Module):
     def __init__(self):
         super().__init__()
@@ -17,15 +16,14 @@ class Encoder(nn.Module):
     def forward(self, x):
         return self.encoder(x)
 
-# ✅ CLASSIFIER (EXACT TRAINED STRUCTURE)
+
 class RetinaClassifier(nn.Module):
     def __init__(self, num_classes=5):
         super().__init__()
 
-        # nested encoder — matches keys encoder.encoder.xxx
+        
         self.encoder = Encoder()
 
-        # ✅ THIS EXACT MATCHES classifier.4.weight & classifier.4.bias
         self.classifier = nn.Sequential(
             nn.Flatten(),                                      # 0
             nn.Linear(256 * 28 * 28, 512),                     # 1

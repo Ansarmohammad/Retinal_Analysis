@@ -9,7 +9,6 @@ from autoencoder import Autoencoder
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-# ✅ FIXED ABSOLUTE PATH
 MODEL_PATH = r"C:/Users/DELL/Videos/major_proj/backend/model/autoencoder_retina.pth"
 
 image_path = sys.argv[1]

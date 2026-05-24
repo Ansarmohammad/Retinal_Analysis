@@ -9,41 +9,29 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-/* ----------------------------------------------------
- ✅ 1. MONGO DB CONNECTION
----------------------------------------------------- */
 mongoose
   .connect("mongodb://127.0.0.1:27017/retina_users")
   .then(() => console.log("✅ MongoDB Connected"))
   .catch((err) => console.log("❌ Mongo Error:", err));
 
-/* ----------------------------------------------------
- ✅ 2. USER SCHEMA
----------------------------------------------------- */
 const userSchema = new mongoose.Schema({
   name: String,
   userid: String,
   pwd: String,
   email: String,
-  phone: String, // ✅ always stored as string
+  phone: String, 
   otp: String,
   otpExpiry: Number,
 });
 
 const User = mongoose.model("User", userSchema);
 
-/* ----------------------------------------------------
- ✅ 3. MULTER UPLOAD FOR PREDICTION
----------------------------------------------------- */
 const storage = multer.diskStorage({
   destination: "uploads/",
   filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
 });
 const upload = multer({ storage });
 
-/* ----------------------------------------------------
- ✅ 4. PREDICT ROUTE (Python)
----------------------------------------------------- */
 app.post("/predict", upload.single("image"), (req, res) => {
   const imagePath = req.file.path;
 
@@ -63,16 +51,10 @@ app.post("/predict", upload.single("image"), (req, res) => {
   });
 });
 
-/* ----------------------------------------------------
- ✅ 5. GENERATE OTP
----------------------------------------------------- */
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-/* ----------------------------------------------------
- ✅ 6. SIGNUP
----------------------------------------------------- */
 app.post("/signup", async (req, res) => {
   const { name, userid, pwd, email, phone } = req.body;
 
@@ -80,8 +62,6 @@ app.post("/signup", async (req, res) => {
   if (exists) return res.json({ msg: "User already exists" });
 
   const hash = await bcrypt.hash(pwd, 10);
-
-  // ✅ FORCE phone to string — prevents matching issues
   await User.create({
     name,
     userid,
@@ -93,9 +73,7 @@ app.post("/signup", async (req, res) => {
   res.json({ msg: "Signup Successful ✅" });
 });
 
-/* ----------------------------------------------------
- ✅ 7. LOGIN
----------------------------------------------------- */
+
 app.post("/login", async (req, res) => {
   const { userid, password } = req.body;
 
@@ -150,10 +128,6 @@ app.post("/send-otp", async (req, res) => {
   }
 });
 
-
-/* ----------------------------------------------------
- ✅ 9. VERIFY OTP
----------------------------------------------------- */
 app.post("/verify-otp", async (req, res) => {
   const { phone, otp } = req.body;
 
@@ -176,8 +150,6 @@ app.post("/update-profile", async (req, res) => {
   user.name = name;
   user.email = email;
   user.phone = phone;
-
-  // update password only if provided
   if (password.trim() !== "") {
     user.pwd = await bcrypt.hash(password, 10);
   }
@@ -187,10 +159,6 @@ app.post("/update-profile", async (req, res) => {
   res.json({ success: true, message: "Profile updated ✅" });
 });
 
-
-/* ----------------------------------------------------
- ✅ 10. RESET PASSWORD
----------------------------------------------------- */
 app.post("/reset-password", async (req, res) => {
   const { phone, password } = req.body;
 
@@ -207,12 +175,8 @@ app.post("/reset-password", async (req, res) => {
 
   res.json({ message: "Password reset successful ✅" });
 });
-// server.js (add near your other requires)
 const path = require("path");
 
-// ... existing code ...
-
-// NEW: reconstruct endpoint
 app.post("/predict", upload.single("image"), (req, res) => {
   const imagePath = req.file.path;
 
@@ -226,7 +190,7 @@ app.post("/predict", upload.single("image"), (req, res) => {
 
   python.stdout.on("end", () => {
     try {
-      fullData = fullData.trim(); // remove unwanted spaces/newlines
+      fullData = fullData.trim(); 
 
       console.log("✅ PYTHON RESPONSE:", fullData);
 
@@ -251,13 +215,12 @@ app.post("/analyze", upload.single("image"), (req, res) => {
   let fullData = "";
 
   python.stdout.on("data", (data) => {
-    fullData += data.toString();   // ✅ Collect all chunks
+    fullData += data.toString();   
   });
 
   python.stdout.on("end", () => {
     try {
       fullData = fullData.trim();
-      //console.log("✅ PYTHON FULL JSON:", fullData);
       console.log("image generated")
       res.json(JSON.parse(fullData)); 
     } catch (err) {
@@ -272,12 +235,6 @@ app.post("/analyze", upload.single("image"), (req, res) => {
   });
 });
 
-
-
-
-/* ----------------------------------------------------
- ✅ 11. START SERVER
----------------------------------------------------- */
 app.listen(5000, () =>
   console.log("✅ Server running on port 5000")
 );
