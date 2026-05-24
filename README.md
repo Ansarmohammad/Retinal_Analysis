@@ -1,61 +1,81 @@
 # Retinal_Analysis
 
 This repository contains a React frontend and an Express + Python backend for retinal analysis.
+# Retinal_Analysis
 
-## Setup
+This repository contains a React frontend and an Express + Python backend for retinal analysis.
 
-1. Clone the repo:
+## Quick start (clone and prepare)
+
+Prerequisites:
+- `git` (with `git lfs` installed)
+- `node` and `npm`
+- `python` (3.8+ recommended) and `pip`
+
+Clone the repo and fetch large model files (Git LFS):
 
 ```bash
 git clone https://github.com/Ravichalikanti/Retinal_Analysis.git
 cd Retinal_Analysis
+# If you don't have Git LFS installed, follow instructions at https://git-lfs.github.com/
+git lfs install
+git lfs pull
 ```
 
-2. Install backend dependencies:
+If `git lfs pull` does not download model files automatically, run:
+
+```bash
+git lfs fetch --all
+git lfs checkout
+```
+
+## Backend setup
+
+1. Install Node.js dependencies:
 
 ```bash
 cd backend
 npm install
 ```
 
-3. Install frontend dependencies:
+2. Install Python dependencies (minimal):
+
+```bash
+python -m pip install torch pillow numpy
+```
+
+3. Ensure the model weights are present in `backend/model/`:
+
+- `autoencoder_retina.pth`
+- `retina_classifier.pth`
+- `encoder_only.pth` (optional)
+- `encoder_only_fixed.pth` (optional)
+
+These files are tracked using Git LFS and should be downloaded by `git lfs pull` above. If you obtained them separately, place them in `backend/model/`.
+
+4. Start the backend server:
+
+```bash
+npm start
+```
+
+This runs `backend/server.js` which calls `backend/model/predict.py` to perform predictions.
+
+## Frontend setup
+
+Install dependencies and start the React app:
 
 ```bash
 cd ../frontend
 npm install
-```
-
-4. Start backend:
-
-```bash
-cd ../backend
 npm start
 ```
 
-5. Start frontend:
+## Notes for contributors / distribution
 
-```bash
-cd ../frontend
-npm start
-```
+- The repository uses Git LFS to store large model checkpoint files. Make sure contributors and CI runners have Git LFS enabled.
+- If you cannot host model weights in this repo, consider providing a script to download them from an external storage location and place them into `backend/model/`.
 
-## Important model files
+## Contact
 
-The backend Python prediction script requires pre-trained model weights in `backend/model/`:
-
-- `autoencoder_retina.pth`
-- `retina_classifier.pth`
-
-These files are ignored by `.gitignore` and are not committed to the repository.
-
-If you want this repo to work for others, you need one of these:
-
-- add the `.pth` files into `backend/model/` and commit them if they are allowed to be shared,
-- or publish the files separately and document where to download them,
-- or add a setup script that downloads the model weights into `backend/model/`.
-
-## Notes
-
-- The frontend is a normal directory and not a git submodule.
-- Prediction depends on `python` and PyTorch being installed for the backend script.
-- `backend/server.js` launches `backend/model/predict.py` to perform image analysis.
+If you need help with the setup, open an issue in the repository with details about your OS and any errors you see.
