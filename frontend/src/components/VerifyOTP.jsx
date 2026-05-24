@@ -11,7 +11,7 @@ export default function VerifyOTP() {
 
   const verifyOtp = async () => {
     try {
-      const res = await axios.post("http://localhost:5000/verify-otp", {
+      const res = await axios.post("https://retinal-analysis-backend.onrender.com/verify-otp", {
         phone,
         otp
       });

@@ -9,7 +9,7 @@ export default function ForgotPassword() {
 
   const sendOTP = async () => {
     try {
-      const res = await axios.post("http://localhost:5000/send-otp", { phone });
+      const res = await axios.post("https://retinal-analysis-backend.onrender.com/forgot-password", { phone });
       setMsg(res.data.message);
 
       if (res.data.message.includes("OTP sent")) {

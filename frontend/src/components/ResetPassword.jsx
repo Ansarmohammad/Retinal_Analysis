@@ -12,7 +12,7 @@ export default function ResetPassword() {
 
   const updatePassword = async () => {
     try {
-      const res = await axios.post("http://localhost:5000/reset-password", {
+      const res = await axios.post("https://retinal-analysis-backend.onrender.com/reset-password", {
         phone,
         password
       });

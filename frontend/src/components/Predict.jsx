@@ -11,7 +11,7 @@ export default function Predict() {
     const formData = new FormData();
     formData.append("image", file);
 
-    const res = await axios.post("http://localhost:5000/analyze", formData, {
+    const res = await axios.post("https://retinal-analysis-backend.onrender.com/analyze", formData, {
       headers: { "Content-Type": "multipart/form-data" }
     });
 

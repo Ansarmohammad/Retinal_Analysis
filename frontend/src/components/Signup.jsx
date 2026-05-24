@@ -24,7 +24,7 @@ const Signup = () => {
     }
 
     try {
-      const res = await axios.post("http://localhost:5000/signup", {
+      const res = await axios.post("https://retinal-analysis-backend.onrender.com/signup", {
         name: form.name,
         userid: form.userid,
         pwd: form.pwd,
