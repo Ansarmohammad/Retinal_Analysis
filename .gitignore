@@ -27,6 +27,7 @@ env/
 # Backend model and uploads
 backend/model/__pycache__/
 backend/model/*.pth
+!backend/model/*.pth
 backend/uploads/
 
 # IDE settings
