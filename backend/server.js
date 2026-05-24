@@ -11,10 +11,27 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+/* ===========================
+   MONGODB CONNECTION
+=========================== */
+
 mongoose
-mongoose.connect(process.env.MONGO_URI)
-.then(() => console.log("✅ MongoDB Connected"))
-.catch(err => console.log("❌ Mongo Error:", err));
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ MongoDB Connected"))
+  .catch((err) => console.log("❌ Mongo Error:", err));
+
+/* ===========================
+   HOME ROUTE
+=========================== */
+
+app.get("/", (req, res) => {
+  res.send("RetinaVision AI Backend Running 🚀");
+});
+
+/* ===========================
+   USER SCHEMA
+=========================== */
+
 const userSchema = new mongoose.Schema({
   name: String,
   userid: String,
@@ -27,6 +44,10 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model("User", userSchema);
 
+/* ===========================
+   MULTER STORAGE
+=========================== */
+
 const storage = multer.diskStorage({
   destination: "uploads/",
   filename: (req, file, cb) => {
@@ -35,6 +56,10 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
+
+/* ===========================
+   GENERATE OTP
+=========================== */
 
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -67,7 +92,10 @@ app.post("/signup", async (req, res) => {
     res.json({ msg: "Signup Successful ✅" });
   } catch (err) {
     console.log(err);
-    res.status(500).json({ msg: "Signup Failed" });
+
+    res.status(500).json({
+      msg: "Signup Failed",
+    });
   }
 });
 
@@ -82,13 +110,17 @@ app.post("/login", async (req, res) => {
     const user = await User.findOne({ userid });
 
     if (!user) {
-      return res.json({ msg: "User not found" });
+      return res.json({
+        msg: "User not found",
+      });
     }
 
     const match = await bcrypt.compare(password, user.pwd);
 
     if (!match) {
-      return res.json({ msg: "Wrong Password" });
+      return res.json({
+        msg: "Wrong Password",
+      });
     }
 
     res.json({
@@ -102,7 +134,10 @@ app.post("/login", async (req, res) => {
     });
   } catch (err) {
     console.log(err);
-    res.status(500).json({ msg: "Login Failed" });
+
+    res.status(500).json({
+      msg: "Login Failed",
+    });
   }
 });
 
@@ -280,10 +315,10 @@ app.post("/analyze", upload.single("image"), (req, res) => {
   try {
     const imagePath = req.file.path;
 
-    const python = spawn(
-      "C:\\Users\\ANSAR\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
-      ["model/predict.py", imagePath]
-    );
+    const python = spawn("python", [
+      "model/predict.py",
+      imagePath,
+    ]);
 
     let fullData = "";
 
@@ -324,6 +359,8 @@ app.post("/analyze", upload.single("image"), (req, res) => {
    START SERVER
 =========================== */
 
-app.listen(5000, () => {
-  console.log("✅ Server running on port 5000");
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`);
 });
