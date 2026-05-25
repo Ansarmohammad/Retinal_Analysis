@@ -315,7 +315,8 @@ app.post("/analyze", upload.single("image"), (req, res) => {
   try {
     const imagePath = req.file.path;
 
-    const python = spawn("python", [
+    // IMPORTANT FIX FOR RENDER
+    const python = spawn("python3", [
       "model/predict.py",
       imagePath,
     ]);
